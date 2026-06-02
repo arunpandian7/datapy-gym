@@ -1,17 +1,20 @@
 def cells() -> list[tuple[str, str]]:
     """Returns (cell_type, source) pairs. cell_type is 'markdown' or 'code'."""
     return [
-
         # ── Title ────────────────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 # PySpark Gym — 01: Aggregations
 
 Practice: `groupBy`, `agg`, conditional counts, date bucketing, and multi-column aggregation.
 Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
-"""),
-
+""",
+        ),
         # ── Setup ────────────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 from pathlib import Path
 import sys
 
@@ -51,21 +54,25 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 from utils.checks.aggregations import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-"""),
-
+""",
+        ),
         # ── Data preview ─────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 for name, df in [("orders", orders), ("order_items", order_items),
                  ("customers", customers), ("products", products)]:
     print(f"\\n{'─'*50}\\n  {name}\\n{'─'*50}")
     df.printSchema()
     df.show(3, truncate=False)\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 1
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 1: Revenue by Product Category
 
 For every product category, compute the total revenue generated across all order line items.
@@ -79,18 +86,21 @@ and sum `quantity * unit_price`.
 | total_revenue | double | `round(sum(quantity * unit_price), 2)`, sorted DESC |
 
 Expected: **10 rows** (one per category).\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_1 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p1(solution_1)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 2: Top 5 Customers by Completed Spend
 
 Find the five customers who spent the most on **completed** orders.
@@ -105,18 +115,21 @@ Find the five customers who spent the most on **completed** orders.
 | total_spend | double | `round(sum(total_amount), 2)`, sorted DESC |
 
 Expected: **5 rows**, ordered by `total_spend` DESC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_2 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p2(solution_2)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 3: Monthly Revenue Trend
 
 Aggregate orders by calendar month and track order volume alongside revenue.
@@ -131,18 +144,21 @@ then group and aggregate.
 | monthly_revenue | double | `round(sum(total_amount), 2)` |
 
 Expected: one row per month, ordered by `month` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_3 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p3(solution_3)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 4: Categories Where Average Item Price Exceeds $100
 
 Identify product categories where the average unit price of items sold is above $100.
@@ -156,18 +172,21 @@ compute `avg(unit_price)`, then filter.
 | avg_item_price | double | `round(avg(unit_price), 2)`, filtered > 100, sorted DESC |
 
 Expected: subset of the 10 categories.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_4 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p4(solution_4)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 5: Customer Tier Performance Summary
 
 Summarise order activity and revenue by customer tier, then compute revenue per customer.
@@ -185,12 +204,13 @@ after aggregation.
 | revenue_per_customer | double | `round(total_revenue / unique_customers, 2)` |
 
 Expected: one row per tier, ordered by `tier` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_5 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p5(solution_5)"),
-
     ]

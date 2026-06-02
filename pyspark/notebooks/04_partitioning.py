@@ -1,18 +1,21 @@
 def cells() -> list[tuple[str, str]]:
     """Returns (cell_type, source) pairs. cell_type is 'markdown' or 'code'."""
     return [
-
         # ── Title ────────────────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 # PySpark Gym — 04: Partitioning
 
 Practice: `repartition` vs `coalesce`, partition-by-column, `repartitionByRange`,
 shuffle partition control via `spark.sql.shuffle.partitions`, and `spark_partition_id()`.
 Each problem asks you to manipulate partitioning and return a verifiable DataFrame.\
-"""),
-
+""",
+        ),
         # ── Setup ────────────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 from pathlib import Path
 import sys
 
@@ -51,12 +54,14 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 from utils.checks.partitioning import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 1
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 1: Row Distribution After repartition(4)
 
 Repartition `orders` into exactly 4 partitions, then measure how many rows landed in each partition.
@@ -72,18 +77,21 @@ Repartition `orders` into exactly 4 partitions, then measure how many rows lande
 Expected: 4 rows, sorted by `partition_id` ASC.
 `repartition(4)` uses a full shuffle and distributes rows via round-robin, so the distribution
 should be roughly even.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_1 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p1(solution_1)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 2: Partition Skew on customer_id
 
 Repartition `orders` into 10 partitions **by the `customer_id` column** and observe how
@@ -103,18 +111,21 @@ will dominate one partition — this is data skew.
 | row_count | long | sorted DESC to highlight the hot partition |
 
 Expected: 10 rows, sorted by `row_count` DESC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_2 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p2(solution_2)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 3: Coalesce vs Repartition
 
 Start with `orders` repartitioned to 20 partitions, then **coalesce** down to 5 and measure
@@ -130,25 +141,30 @@ Add `spark_partition_id()`, group, and count.
 | row_count | long | sorted ASC by partition_id |
 
 Expected: 5 rows, sorted by `partition_id` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_3 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p3(solution_3)"),
-
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 **Observation:** Run `.explain()` on `orders.repartition(20).coalesce(5)` and look at the
 physical plan. You will see an `Exchange` node for the initial `repartition(20)` shuffle, but
 **no second Exchange** for `coalesce(5)` — coalesce avoids the full shuffle by merging local
 partitions in place.\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 4: Shuffle Partition Control
 
 Control the number of post-shuffle partitions produced by a `groupBy` aggregation using the
@@ -168,18 +184,21 @@ to size the exchange after the aggregate.
 | total_revenue | double | `round(sum(total_amount), 2)`, sorted DESC |
 
 Expected: 4 rows, sorted by `total_revenue` DESC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_4 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p4(solution_4)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 5: Range-Based Partitioning
 
 Partition `orders` into 5 partitions using `repartitionByRange` on `total_amount`, then
@@ -198,12 +217,13 @@ and compute `min`, `max`, and `count`.
 | row_count | long | |
 
 Expected: 5 rows, sorted by `partition_id` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_5 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p5(solution_5)"),
-
     ]

@@ -1,17 +1,20 @@
 def cells() -> list[tuple[str, str]]:
     """Returns (cell_type, source) pairs. cell_type is 'markdown' or 'code'."""
     return [
-
         # ── Title ────────────────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 # PySpark Gym — 05: Salting
 
 Practice: detecting data skew, the salting technique for skewed `groupBy` and skewed joins,
 and verifying that salted results match naive results.\
-"""),
-
+""",
+        ),
         # ── What is salting? ─────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## What is Salting?
 
 When one key value dominates a dataset, hash partitioning concentrates those rows into a
@@ -30,10 +33,12 @@ After the partial aggregation, strip the salt suffix and do a final merge to get
 correct per-key totals.
 
 This dataset has **intentional skew**: `customer_id=1` owns ~30% of all 8 000 orders.\
-"""),
-
+""",
+        ),
         # ── Setup ────────────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 from pathlib import Path
 import sys
 
@@ -73,12 +78,14 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 from utils.checks.salting import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 1
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 1: Identify the Skew
 
 Before salting, confirm that the skew actually exists. Find the five customers with the most orders.
@@ -93,18 +100,21 @@ the rest.
 | order_count | long | |
 
 Expected: 5 rows, ordered by `order_count` DESC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_1 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p1(solution_1)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 2: Quantify the Skew Ratio
 
 A single number — `max_orders / avg_orders` — tells you how many times worse the hottest
@@ -121,18 +131,21 @@ Then aggregate again: `max(order_count)` → `max_orders`, `round(avg(order_coun
 | skew_ratio | double | `round(max_orders / avg_orders, 2)` |
 
 Expected: a single-row DataFrame.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_2 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p2(solution_2)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 3: Salted GroupBy — Total Revenue per Customer
 
 Compute total revenue per customer using salting, then verify the result matches the naive approach.
@@ -157,19 +170,22 @@ sums — a cheap aggregation over already-reduced data.
 
 Expected: same result as the naive `groupBy("customer_id").agg(round(sum(...)))`.
 `precision=0.02` allows for minor floating-point accumulation across two-step sums.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 N_SALT = 10
 solution_3 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p3(solution_3)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 4: Salted Join — Orders for Platinum Customers
 
 The join target (`platinum` customers) is a small lookup table, but the probe side (`orders`)
@@ -200,19 +216,22 @@ row finds a match.
 | total_amount | double | |
 
 Expected: same rows as a direct `orders.join(lookup, "customer_id")`.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 N_SALT = 5
 solution_4 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p4(solution_4)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 5: Compare Partition Hotspot Before and After Salting
 
 Put a number on the improvement. Build both the un-salted and salted repartitioned DataFrames
@@ -239,12 +258,13 @@ Return a two-row DataFrame with an `approach` column (`"unsalted"` / `"salted"`)
 | hottest_ratio | double | `round(max / avg, 2)` — lower is better |
 
 A well-salted result should have a `hottest_ratio` close to 1.0; unsalted will be much higher.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_5 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p5(solution_5)"),
-
     ]

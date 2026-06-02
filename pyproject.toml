@@ -10,4 +10,20 @@ dependencies = [
     "numpy>=2.0.0",
     "ipywidgets>=8.0.0",
     "nbformat>=5.9.0",
+    "jupyterlab-code-formatter>=3.0.3",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.15",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E402", "E501"]  # E402: imports not at top (notebook setup cells); E501: long lines in markdown strings
+
+[tool.ruff.format]
+quote-style = "double"

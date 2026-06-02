@@ -1,18 +1,21 @@
 def cells() -> list[tuple[str, str]]:
     """Returns (cell_type, source) pairs. cell_type is 'markdown' or 'code'."""
     return [
-
         # ── Title ────────────────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 # PySpark Gym — 02: Window Functions
 
 Practice: ranking (`dense_rank`, `row_number`), running aggregations, `lag`/`lead`,
 and `percent_rank` — all using `pyspark.sql.Window`.
 Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
-"""),
-
+""",
+        ),
         # ── Setup ────────────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 from pathlib import Path
 import sys
 
@@ -52,21 +55,25 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 from utils.checks.window_functions import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-"""),
-
+""",
+        ),
         # ── Data preview ─────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 for name, df in [("orders", orders), ("order_items", order_items),
                  ("customers", customers), ("products", products)]:
     print(f"\\n{'─'*50}\\n  {name}\\n{'─'*50}")
     df.printSchema()
     df.show(3, truncate=False)\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 1
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 1: Top 3 Products by Revenue Within Each Category
 
 Rank products by revenue inside each category using `dense_rank`, then keep the top 3.
@@ -82,18 +89,21 @@ Rank products by revenue inside each category using `dense_rank`, then keep the 
 | rank | int | dense rank within category, 1 = highest revenue |
 
 Expected: up to 3 rows per category (ties keep all), ordered `category` ASC, `rank` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_1 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p1(solution_1)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 2: Cumulative Daily Revenue
 
 Compute a running total of revenue over time — useful for tracking how quickly revenue
@@ -109,18 +119,21 @@ accumulates across the year.
 | running_total | double | `round(cumulative sum of daily_revenue, 2)` |
 
 Expected: one row per day, ordered `order_date` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_2 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p2(solution_2)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 3: Month-over-Month Revenue Change
 
 Compare each month's revenue to the previous month and compute the percentage change.
@@ -137,18 +150,21 @@ The first row will have `null` for `prev_revenue` and `mom_change_pct`.
 | mom_change_pct | double | `round((monthly_revenue - prev_revenue) / prev_revenue * 100, 2)` |
 
 Expected: one row per month, ordered `month` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_3 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p3(solution_3)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 4: Top 2 Customers per Tier by Spend (Completed Orders Only)
 
 Within each customer tier, find the two highest-spending customers — useful for tier-based
@@ -166,18 +182,21 @@ then apply `row_number() OVER (PARTITION BY tier ORDER BY total_spend DESC)`. Fi
 | rank_in_tier | int | 1 = top spender in that tier |
 
 Expected: up to 2 rows per tier, ordered `tier` ASC, `rank_in_tier` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_4 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p4(solution_4)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 5: Percentile Rank of Order Amounts Within Each Status
 
 For each order, compute where it falls in the distribution of order amounts within its own
@@ -195,12 +214,13 @@ directly on the `orders` DataFrame — no pre-aggregation needed.
 | pct_rank | double | `round(percent_rank(), 4)`, 0.0 = lowest, 1.0 = highest |
 
 Expected: all orders, ordered `status` ASC, `total_amount` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_5 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p5(solution_5)"),
-
     ]

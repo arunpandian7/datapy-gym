@@ -1,17 +1,20 @@
 def cells() -> list[tuple[str, str]]:
     """Returns (cell_type, source) pairs. cell_type is 'markdown' or 'code'."""
     return [
-
         # ── Title ────────────────────────────────────────────────────────────
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 # PySpark Gym — 03: Joins
 
 Practice: inner / left / anti / semi joins, multi-table joins, broadcast hints, and self-joins.
 Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
-"""),
-
+""",
+        ),
         # ── Setup ────────────────────────────────────────────────────────────
-        ("code", """\
+        (
+            "code",
+            """\
 from pathlib import Path
 import sys
 
@@ -50,12 +53,14 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 from utils.checks.joins import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-"""),
-
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 1
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 1: Enriched Order Line Items
 
 Build a fully-enriched line-item table by joining all four source tables, then filter to completed orders only.
@@ -77,18 +82,21 @@ ambiguity. Compute `line_total` as `round(quantity * unit_price, 2)`.
 | line_total | double | `round(quantity * unit_price, 2)` |
 
 Expected: all completed-order line items, unordered.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_1 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p1(solution_1)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 2: Customers Who Have Never Ordered
 
 Find customers with no record in the orders table — a classic anti-join pattern.
@@ -105,18 +113,21 @@ have *no* matching key on the right.
 | tier | string | |
 
 Expected: all customers absent from `orders`, sorted by `customer_id` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_2 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p2(solution_2)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 3: Most Frequently Bought Product Pairs
 
 Find the top 10 pairs of products that appear together most often in the same order.
@@ -132,18 +143,21 @@ Use `.alias("a")` / `.alias("b")` and reference columns with `F.col("a.product_i
 | times_bought_together | long | sorted DESC, top 10 |
 
 Expected: 10 rows, ordered by `times_bought_together` DESC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_3 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p3(solution_3)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 4: Customers Who Bought From Both Electronics AND Sports
 
 Find customers who have purchased at least one item from the **Electronics** category *and*
@@ -163,18 +177,21 @@ at least one item from the **Sports** category.
 | name | string | |
 
 Expected: customers present in both category buyer sets, sorted by `customer_id` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_4 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p4(solution_4)"),
-
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
         # ════════════════════════════════════════════════════════════════════
-        ("markdown", """\
+        (
+            "markdown",
+            """\
 ## Problem 5: Revenue Share by Customer Tier
 
 Show how much each customer tier contributes to total revenue as a percentage.
@@ -191,12 +208,13 @@ to get `revenue_share_pct`.
 | revenue_share_pct | double | `round(tier_revenue / grand_total * 100, 2)` |
 
 Expected: one row per tier, sorted by `tier` ASC.\
-"""),
-
-        ("code", """\
+""",
+        ),
+        (
+            "code",
+            """\
 solution_5 = None  # ← your answer here\
-"""),
-
+""",
+        ),
         ("code", "checker.p5(solution_5)"),
-
     ]
