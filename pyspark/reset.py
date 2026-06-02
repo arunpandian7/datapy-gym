@@ -53,7 +53,12 @@ def build_notebook(cells: list[tuple[str, str]]) -> nbformat.NotebookNode:
         if kind == "markdown":
             nb_cells.append(new_markdown_cell(source))
         else:
-            nb_cells.append(new_code_cell(source))
+            cell = new_code_cell(source)
+            # Hide check cells so _expected_N is not visible while solving.
+            # User can expand them manually after attempting the problem.
+            if "check(solution_" in source:
+                cell.metadata["jupyter"] = {"source_hidden": True}
+            nb_cells.append(cell)
 
     nb = new_notebook(cells=nb_cells)
     nb.metadata["kernelspec"] = {
