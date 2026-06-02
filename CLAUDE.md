@@ -20,7 +20,7 @@ uv run <command>           # run a command in the managed venv
 
 ```
 pyspark/
-  notebooks/NN_topic.py    ← SOURCE OF TRUTH: Python template files
+  templates/NN_topic.py    ← SOURCE OF TRUTH: Python template files
   sessions/YYYY-MM-DD/     ← generated .ipynb files (committed, never edited directly)
   reset.py                 ← converts templates → notebooks via nbformat
   utils/__init__.py        ← get_spark(), check()
@@ -31,7 +31,7 @@ pyspark/
 
 `reset.py` imports each template module, calls its `cells()` function, and writes a `.ipynb` into `pyspark/sessions/YYYY-MM-DD/` using `nbformat`. The `cells()` function returns `list[tuple[str, str]]` where each tuple is `("markdown" | "code", source_string)`.
 
-**Never edit `.ipynb` files directly.** Edit the `.py` template, then re-run `reset.py` to regenerate.
+**Never edit `.ipynb` files directly.** Edit the `.py` template in `templates/`, then re-run `reset.py` to regenerate.
 
 ```bash
 uv run python pyspark/reset.py          # regenerate all notebooks for today
@@ -90,14 +90,14 @@ Renders colored HTML in Jupyter via `IPython.display`.
 
 ## Adding a new PySpark topic
 
-1. Create `pyspark/notebooks/NN_topic.py` with a `cells()` function returning `list[tuple[str, str]]`.
+1. Create `pyspark/templates/NN_topic.py` with a `cells()` function returning `list[tuple[str, str]]`.
 2. Add `"NN_topic"` to the `NOTEBOOKS` list in `pyspark/reset.py`.
 3. Regenerate:
    ```bash
    uv run python pyspark/reset.py NN
    ```
 
-Template conventions observed in existing notebooks:
+Template conventions observed in existing templates:
 - First cell: markdown title
 - Second cell: setup block that locates `pyspark/utils/`, loads data, caches all four DataFrames
 - Problems alternate: markdown spec cell → `solution_N = None` cell → hidden `_expected_N` + `check()` cell
@@ -112,9 +112,16 @@ Create a parallel directory tree alongside `pyspark/`:
 STACK/
   utils/__init__.py        # get_X() session factory + check()
   data/generate_data.py    # dataset generator
-  notebooks/NN_topic.py    # template files with cells()
+  templates/NN_topic.py    # template files with cells() — source of truth, never edit .ipynb directly
+  sessions/                # generated .ipynb files, one dated subdirectory per day
   reset.py                 # same pattern as pyspark/reset.py
 ```
+
+Key points:
+- `templates/` holds `.py` files only — these define problems and are the source of truth
+- `sessions/` holds generated `.ipynb` files — learners work here, never in `templates/`
+- `reset.py` imports each template, calls `cells()`, and writes the `.ipynb` via `nbformat`
+- Add a `.gitkeep` inside `sessions/` so the directory is tracked when empty
 
 Add stack-specific dependencies:
 ```bash
@@ -127,7 +134,7 @@ No changes needed to `pyproject.toml` beyond `uv add`; uv manages it.
 
 ## Session git workflow
 
-- `pyspark/notebooks/*.py` — templates, source of truth, always committed
+- `pyspark/templates/*.py` — templates, source of truth, always committed
 - `pyspark/sessions/YYYY-MM-DD/*.ipynb` — generated session notebooks, committed (so practice work is saved)
 - `pyspark/data/*.csv` — gitignored, regenerated on demand
 - `pyspark/sessions/.gitkeep` — keeps the sessions/ directory tracked when empty
@@ -139,7 +146,7 @@ No changes needed to `pyproject.toml` beyond `uv add`; uv manages it.
 | File | Purpose |
 |------|---------|
 | `pyspark/reset.py` | CLI: converts `.py` templates → dated `.ipynb` session files |
-| `pyspark/notebooks/NN_*.py` | Template source for each topic; defines `cells()` |
+| `pyspark/templates/NN_*.py` | Template source for each topic; defines `cells()` |
 | `pyspark/sessions/YYYY-MM-DD/*.ipynb` | Active practice notebooks; committed |
 | `pyspark/utils/__init__.py` | `get_spark()` and `check()` used inside every notebook |
 | `pyspark/data/generate_data.py` | Generates the four CSV files with fixed seed (42) |

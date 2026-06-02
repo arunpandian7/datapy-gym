@@ -9,7 +9,7 @@ import nbformat
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 PYSPARK_DIR = Path(__file__).parent
-NOTEBOOKS_DIR = PYSPARK_DIR / "notebooks"
+TEMPLATES_DIR = PYSPARK_DIR / "templates"
 SESSIONS_DIR = PYSPARK_DIR / "sessions"
 
 NOTEBOOKS = [
@@ -40,7 +40,7 @@ def resolve_targets(args: list[str]) -> list[str]:
 
 
 def load_cells(name: str) -> list[tuple[str, str]]:
-    module_path = NOTEBOOKS_DIR / f"{name}.py"
+    module_path = TEMPLATES_DIR / f"{name}.py"
     spec = importlib.util.spec_from_file_location(name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

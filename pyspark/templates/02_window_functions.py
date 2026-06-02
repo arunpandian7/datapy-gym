@@ -5,9 +5,10 @@ def cells() -> list[tuple[str, str]]:
         (
             "markdown",
             """\
-# PySpark Gym — 03: Joins
+# PySpark Gym — 02: Window Functions
 
-Practice: inner / left / anti / semi joins, multi-table joins, broadcast hints, and self-joins.
+Practice: ranking (`dense_rank`, `row_number`), running aggregations, `lag`/`lead`,
+and `percent_rank` — all using `pyspark.sql.Window`.
 Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
 """,
         ),
@@ -18,6 +19,7 @@ Each problem builds a result DataFrame; assign it to the named `solution_N` vari
 from pathlib import Path
 import sys
 
+# Find pyspark/ directory regardless of where jupyter was launched from
 _cwd = Path.cwd()
 _candidates = [_cwd / "pyspark", _cwd, _cwd.parent, _cwd.parent / "pyspark", _cwd.parent.parent, _cwd.parent.parent / "pyspark"]
 _pyspark_dir = next((p for p in _candidates if (p / "utils" / "__init__.py").exists()), None)
@@ -48,11 +50,22 @@ print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
 
-from utils.checks.joins import Checker
+from utils.checks.window_functions import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
 
-from utils.checks.joins import Checker
+from utils.checks.window_functions import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
+""",
+        ),
+        # ── Data preview ─────────────────────────────────────────────────────
+        (
+            "code",
+            """\
+for name, df in [("orders", orders), ("order_items", order_items),
+                 ("customers", customers), ("products", products)]:
+    print(f"\\n{'─'*50}\\n  {name}\\n{'─'*50}")
+    df.printSchema()
+    df.show(3, truncate=False)\
 """,
         ),
         # ════════════════════════════════════════════════════════════════════
@@ -61,27 +74,26 @@ checker = Checker(spark, customers, products, orders, order_items)\
         (
             "markdown",
             """\
-## Problem 1: Enriched Order Line Items
+## Problem 1: Top 3 Products by Revenue Within Each Category
 
-Build a fully-enriched line-item table by joining all four source tables, then filter to completed orders only.
+Rank products by revenue inside each category using `dense_rank`, then keep the top 3.
 
-**Approach:** Join `order_items` → `orders` (on `order_id`) → `products` (on `product_id`) → `customers` (on `customer_id`).
-Alias `products.name` to `product_name` and `customers.name` to `customer_name` before or during the join to avoid
-ambiguity. Compute `line_total` as `round(quantity * unit_price, 2)`.
+<details>
+<summary>Hint</summary>
+
+First aggregate to `(product_id, name, category, revenue)`, then apply
+`dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC)`. Filter `rank <= 3`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| order_id | int | |
-| order_date | date | |
-| customer_name | string | from `customers.name` |
-| tier | string | bronze / silver / gold / platinum |
-| product_name | string | from `products.name` |
 | category | string | |
-| quantity | int | |
-| unit_price | double | |
-| line_total | double | `round(quantity * unit_price, 2)` |
+| name | string | product name |
+| revenue | double | `round(sum(quantity * unit_price), 2)` |
+| rank | int | dense rank within category, 1 = highest revenue |
 
-Expected: all completed-order line items, unordered.\
+Expected: up to 3 rows per category (ties keep all), ordered `category` ASC, `rank` ASC.\
 """,
         ),
         (
@@ -97,22 +109,26 @@ solution_1 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 2: Customers Who Have Never Ordered
+## Problem 2: Cumulative Daily Revenue
 
-Find customers with no record in the orders table — a classic anti-join pattern.
+Compute a running total of revenue over time — useful for tracking how quickly revenue
+accumulates across the year.
 
-**Approach:** Build the set of `customer_id` values that appear in `orders` (use `.select("customer_id").distinct()`),
-then do a **left anti join** from `customers` against that set. Anti join keeps only left-side rows that
-have *no* matching key on the right.
+<details>
+<summary>Hint</summary>
+
+First aggregate `orders` to daily revenue, then apply
+`sum(daily_revenue) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| customer_id | int | sorted ASC |
-| name | string | |
-| email | string | |
-| tier | string | |
+| order_date | date | |
+| daily_revenue | double | `round(sum(total_amount), 2)` for that day |
+| running_total | double | `round(cumulative sum of daily_revenue, 2)` |
 
-Expected: all customers absent from `orders`, sorted by `customer_id` ASC.\
+Expected: one row per day, ordered `order_date` ASC.\
 """,
         ),
         (
@@ -128,21 +144,27 @@ solution_2 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 3: Most Frequently Bought Product Pairs
+## Problem 3: Month-over-Month Revenue Change
 
-Find the top 10 pairs of products that appear together most often in the same order.
+Compare each month's revenue to the previous month and compute the percentage change.
 
-**Approach:** Self-join `order_items` as aliases `"a"` and `"b"` on `order_id`, filter
-`a.product_id < b.product_id` (avoids duplicate pairs and self-pairs), then count.
-Use `.alias("a")` / `.alias("b")` and reference columns with `F.col("a.product_id")`.
+<details>
+<summary>Hint</summary>
+
+Aggregate to monthly revenue, then use
+`lag(monthly_revenue, 1) OVER (ORDER BY month)` to get the prior month's value.
+The first row will have `null` for `prev_revenue` and `mom_change_pct`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| product_id_1 | int | the smaller product_id in the pair |
-| product_id_2 | int | the larger product_id in the pair |
-| times_bought_together | long | sorted DESC, top 10 |
+| month | string | `"yyyy-MM"` format |
+| monthly_revenue | double | `round(sum(total_amount), 2)` |
+| prev_revenue | double | prior month's revenue (null for first row) |
+| mom_change_pct | double | `round((monthly_revenue - prev_revenue) / prev_revenue * 100, 2)` |
 
-Expected: 10 rows, ordered by `times_bought_together` DESC.\
+Expected: one row per month, ordered `month` ASC.\
 """,
         ),
         (
@@ -158,25 +180,28 @@ solution_3 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 4: Customers Who Bought From Both Electronics AND Sports
+## Problem 4: Top 2 Customers per Tier by Spend (Completed Orders Only)
 
-Find customers who have purchased at least one item from the **Electronics** category *and*
-at least one item from the **Sports** category.
+Within each customer tier, find the two highest-spending customers — useful for tier-based
+loyalty targeting.
 
-**Approach:**
-1. Join `order_items` with `products` to get category per line item.
-2. Join with `orders` to get `customer_id` per line item.
-3. Filter to Electronics; take distinct `customer_id` → call it `elec_customers`.
-4. Filter to Sports; take distinct `customer_id` → call it `sport_customers`.
-5. Inner join the two sets on `customer_id` — only IDs present in *both* survive.
-6. Join back to `customers` to get `name`.
+<details>
+<summary>Hint</summary>
+
+Filter to `status == "completed"`, join `customers`, aggregate spend,
+then apply `row_number() OVER (PARTITION BY tier ORDER BY total_spend DESC)`. Filter `rank_in_tier <= 2`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| customer_id | int | sorted ASC |
-| name | string | |
+| tier | string | bronze / silver / gold / platinum |
+| customer_id | int | |
+| name | string | customer name |
+| total_spend | double | `round(sum(total_amount), 2)` |
+| rank_in_tier | int | 1 = top spender in that tier |
 
-Expected: customers present in both category buyer sets, sorted by `customer_id` ASC.\
+Expected: up to 2 rows per tier, ordered `tier` ASC, `rank_in_tier` ASC.\
 """,
         ),
         (
@@ -192,22 +217,28 @@ solution_4 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 5: Revenue Share by Customer Tier
+## Problem 5: Percentile Rank of Order Amounts Within Each Status
 
-Show how much each customer tier contributes to total revenue as a percentage.
+For each order, compute where it falls in the distribution of order amounts within its own
+status group — e.g. a "completed" order at the 90th percentile spent more than 90% of
+other completed orders.
 
-**Approach:** Join `orders` with `customers` on `customer_id`, group by `tier`, sum
-`total_amount` → `tier_revenue`. Collect the grand total with
-`orders.agg(F.sum("total_amount")).first()[0]` and divide each tier's revenue by it
-to get `revenue_share_pct`.
+<details>
+<summary>Hint</summary>
+
+Apply `percent_rank() OVER (PARTITION BY status ORDER BY total_amount)`
+directly on the `orders` DataFrame — no pre-aggregation needed.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| tier | string | sorted ASC |
-| tier_revenue | double | `round(sum(total_amount), 2)` |
-| revenue_share_pct | double | `round(tier_revenue / grand_total * 100, 2)` |
+| order_id | int | |
+| status | string | completed / pending / cancelled / refunded |
+| total_amount | double | original order amount |
+| pct_rank | double | `round(percent_rank(), 4)`, 0.0 = lowest, 1.0 = highest |
 
-Expected: one row per tier, sorted by `tier` ASC.\
+Expected: all orders, ordered `status` ASC, `total_amount` ASC.\
 """,
         ),
         (

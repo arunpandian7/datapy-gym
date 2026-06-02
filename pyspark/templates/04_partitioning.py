@@ -5,10 +5,11 @@ def cells() -> list[tuple[str, str]]:
         (
             "markdown",
             """\
-# PySpark Gym — 01: Aggregations
+# PySpark Gym — 04: Partitioning
 
-Practice: `groupBy`, `agg`, conditional counts, date bucketing, and multi-column aggregation.
-Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
+Practice: `repartition` vs `coalesce`, partition-by-column, `repartitionByRange`,
+shuffle partition control via `spark.sql.shuffle.partitions`, and `spark_partition_id()`.
+Each problem asks you to manipulate partitioning and return a verifiable DataFrame.\
 """,
         ),
         # ── Setup ────────────────────────────────────────────────────────────
@@ -18,7 +19,6 @@ Each problem builds a result DataFrame; assign it to the named `solution_N` vari
 from pathlib import Path
 import sys
 
-# Find pyspark/ directory regardless of where jupyter was launched from
 _cwd = Path.cwd()
 _candidates = [_cwd / "pyspark", _cwd, _cwd.parent, _cwd.parent / "pyspark", _cwd.parent.parent, _cwd.parent.parent / "pyspark"]
 _pyspark_dir = next((p for p in _candidates if (p / "utils" / "__init__.py").exists()), None)
@@ -49,22 +49,11 @@ print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
 
-from utils.checks.aggregations import Checker
+from utils.checks.partitioning import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
 
-from utils.checks.aggregations import Checker
+from utils.checks.partitioning import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
-""",
-        ),
-        # ── Data preview ─────────────────────────────────────────────────────
-        (
-            "code",
-            """\
-for name, df in [("orders", orders), ("order_items", order_items),
-                 ("customers", customers), ("products", products)]:
-    print(f"\\n{'─'*50}\\n  {name}\\n{'─'*50}")
-    df.printSchema()
-    df.show(3, truncate=False)\
 """,
         ),
         # ════════════════════════════════════════════════════════════════════
@@ -73,19 +62,26 @@ for name, df in [("orders", orders), ("order_items", order_items),
         (
             "markdown",
             """\
-## Problem 1: Revenue by Product Category
+## Problem 1: Row Distribution After repartition(4)
 
-For every product category, compute the total revenue generated across all order line items.
+Repartition `orders` into exactly 4 partitions, then measure how many rows landed in each partition.
 
-**Approach hint:** Join `order_items` with `products` on `product_id`, then group by `category`
-and sum `quantity * unit_price`.
+<details>
+<summary>Hint</summary>
+
+Call `.repartition(4)` on `orders`. Add a `partition_id` column with
+`F.spark_partition_id()`, group by it, and count rows.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| category | string | product category |
-| total_revenue | double | `round(sum(quantity * unit_price), 2)`, sorted DESC |
+| partition_id | int | 0–3 |
+| row_count | long | number of rows in that partition |
 
-Expected: **10 rows** (one per category).\
+Expected: 4 rows, sorted by `partition_id` ASC.
+`repartition(4)` uses a full shuffle and distributes rows via round-robin, so the distribution
+should be roughly even.\
 """,
         ),
         (
@@ -101,20 +97,30 @@ solution_1 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 2: Top 5 Customers by Completed Spend
+## Problem 2: Partition Skew on customer_id
 
-Find the five customers who spent the most on **completed** orders.
+Repartition `orders` into 10 partitions **by the `customer_id` column** and observe how
+uneven the distribution is.
 
-**Approach hint:** Filter `orders` to `status == "completed"`, join with `customers` on
-`customer_id`, group by `customer_id` + `name`, sum `total_amount`.
+<details>
+<summary>Hint</summary>
+
+Use `orders.repartition(10, F.col("customer_id"))`. Rows with the same
+`customer_id` hash to the same partition, so `customer_id=1` (which holds ~30% of all orders)
+will dominate one partition — this is data skew.
+
+</details>
+
+> **Note:** `customer_id=1` has approximately 30% of all 8 000 orders in this dataset.
+> Partitioning by a skewed key concentrates those rows into a single partition, making
+> that task far slower than the rest.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| customer_id | int | |
-| name | string | customer name |
-| total_spend | double | `round(sum(total_amount), 2)`, sorted DESC |
+| partition_id | int | 0–9 |
+| row_count | long | sorted DESC to highlight the hot partition |
 
-Expected: **5 rows**, ordered by `total_spend` DESC.\
+Expected: 10 rows, sorted by `row_count` DESC.\
 """,
         ),
         (
@@ -130,20 +136,26 @@ solution_2 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 3: Monthly Revenue Trend
+## Problem 3: Coalesce vs Repartition
 
-Aggregate orders by calendar month and track order volume alongside revenue.
+Start with `orders` repartitioned to 20 partitions, then **coalesce** down to 5 and measure
+the row distribution.
 
-**Approach hint:** Use `F.date_format(order_date, "yyyy-MM")` to extract the month string,
-then group and aggregate.
+<details>
+<summary>Hint</summary>
+
+`orders.repartition(20)` first, then `.coalesce(5)`. Coalesce merges adjacent
+partitions without a full shuffle — it is cheaper than `repartition` when reducing partition count.
+Add `spark_partition_id()`, group, and count.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| month | string | `"yyyy-MM"` format |
-| order_count | long | number of orders in the month |
-| monthly_revenue | double | `round(sum(total_amount), 2)` |
+| partition_id | int | 0–4 |
+| row_count | long | sorted ASC by partition_id |
 
-Expected: one row per month, ordered by `month` ASC.\
+Expected: 5 rows, sorted by `partition_id` ASC.\
 """,
         ),
         (
@@ -153,25 +165,44 @@ solution_3 = None  # ← your answer here\
 """,
         ),
         ("code", "checker.p3(solution_3)"),
+        (
+            "markdown",
+            """\
+**Observation:** Run `.explain()` on `orders.repartition(20).coalesce(5)` and look at the
+physical plan. You will see an `Exchange` node for the initial `repartition(20)` shuffle, but
+**no second Exchange** for `coalesce(5)` — coalesce avoids the full shuffle by merging local
+partitions in place.\
+""",
+        ),
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
         # ════════════════════════════════════════════════════════════════════
         (
             "markdown",
             """\
-## Problem 4: Categories Where Average Item Price Exceeds $100
+## Problem 4: Shuffle Partition Control
 
-Identify product categories where the average unit price of items sold is above $100.
+Control the number of post-shuffle partitions produced by a `groupBy` aggregation using the
+`spark.sql.shuffle.partitions` config.
 
-**Approach hint:** Join `order_items` with `products` on `product_id`, group by `category`,
-compute `avg(unit_price)`, then filter.
+<details>
+<summary>Hint</summary>
+
+1. Set `spark.conf.set("spark.sql.shuffle.partitions", "4")`.
+2. Run `orders.groupBy("status").agg(...)`.
+3. Reset the config to `"8"` afterwards so later problems are unaffected.
+
+The output DataFrame will have at most 4 partitions because Spark uses `shuffle.partitions`
+to size the exchange after the aggregate.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| category | string | |
-| avg_item_price | double | `round(avg(unit_price), 2)`, filtered > 100, sorted DESC |
+| status | string | completed / pending / cancelled / refunded |
+| total_revenue | double | `round(sum(total_amount), 2)`, sorted DESC |
 
-Expected: subset of the 10 categories.\
+Expected: 4 rows, sorted by `total_revenue` DESC.\
 """,
         ),
         (
@@ -187,23 +218,29 @@ solution_4 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 5: Customer Tier Performance Summary
+## Problem 5: Range-Based Partitioning
 
-Summarise order activity and revenue by customer tier, then compute revenue per customer.
+Partition `orders` into 5 partitions using `repartitionByRange` on `total_amount`, then
+summarise the value range and size of each partition.
 
-**Approach hint:** Join `orders` with `customers` on `customer_id`, group by `tier`, and use
-`countDistinct` for unique customers. Derive `revenue_per_customer` as a column expression
-after aggregation.
+<details>
+<summary>Hint</summary>
+
+`orders.repartitionByRange(5, F.col("total_amount"))` distributes rows so that
+each partition covers a contiguous range of `total_amount` values — unlike hash-based
+`repartition`, adjacent values end up together. Add `spark_partition_id()`, then group by it
+and compute `min`, `max`, and `count`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| tier | string | bronze / silver / gold / platinum |
-| unique_customers | long | `countDistinct(customer_id)` |
-| total_orders | long | `count(order_id)` |
-| total_revenue | double | `round(sum(total_amount), 2)` |
-| revenue_per_customer | double | `round(total_revenue / unique_customers, 2)` |
+| partition_id | int | 0–4, sorted ASC |
+| min_amount | double | min `total_amount` in that partition |
+| max_amount | double | max `total_amount` in that partition |
+| row_count | long | |
 
-Expected: one row per tier, ordered by `tier` ASC.\
+Expected: 5 rows, sorted by `partition_id` ASC.\
 """,
         ),
         (

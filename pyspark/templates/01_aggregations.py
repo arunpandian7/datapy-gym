@@ -5,10 +5,9 @@ def cells() -> list[tuple[str, str]]:
         (
             "markdown",
             """\
-# PySpark Gym — 02: Window Functions
+# PySpark Gym — 01: Aggregations
 
-Practice: ranking (`dense_rank`, `row_number`), running aggregations, `lag`/`lead`,
-and `percent_rank` — all using `pyspark.sql.Window`.
+Practice: `groupBy`, `agg`, conditional counts, date bucketing, and multi-column aggregation.
 Each problem builds a result DataFrame; assign it to the named `solution_N` variable and run the check cell.\
 """,
         ),
@@ -50,10 +49,10 @@ print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
 
-from utils.checks.window_functions import Checker
+from utils.checks.aggregations import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
 
-from utils.checks.window_functions import Checker
+from utils.checks.aggregations import Checker
 checker = Checker(spark, customers, products, orders, order_items)\
 """,
         ),
@@ -74,21 +73,24 @@ for name, df in [("orders", orders), ("order_items", order_items),
         (
             "markdown",
             """\
-## Problem 1: Top 3 Products by Revenue Within Each Category
+## Problem 1: Revenue by Product Category
 
-Rank products by revenue inside each category using `dense_rank`, then keep the top 3.
+For every product category, compute the total revenue generated across all order line items.
 
-**Approach hint:** First aggregate to `(product_id, name, category, revenue)`, then apply
-`dense_rank() OVER (PARTITION BY category ORDER BY revenue DESC)`. Filter `rank <= 3`.
+<details>
+<summary>Hint</summary>
+
+Join `order_items` with `products` on `product_id`, then group by `category`
+and sum `quantity * unit_price`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| category | string | |
-| name | string | product name |
-| revenue | double | `round(sum(quantity * unit_price), 2)` |
-| rank | int | dense rank within category, 1 = highest revenue |
+| category | string | product category |
+| total_revenue | double | `round(sum(quantity * unit_price), 2)`, sorted DESC |
 
-Expected: up to 3 rows per category (ties keep all), ordered `category` ASC, `rank` ASC.\
+Expected: **10 rows** (one per category).\
 """,
         ),
         (
@@ -104,21 +106,25 @@ solution_1 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 2: Cumulative Daily Revenue
+## Problem 2: Top 5 Customers by Completed Spend
 
-Compute a running total of revenue over time — useful for tracking how quickly revenue
-accumulates across the year.
+Find the five customers who spent the most on **completed** orders.
 
-**Approach hint:** First aggregate `orders` to daily revenue, then apply
-`sum(daily_revenue) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`.
+<details>
+<summary>Hint</summary>
+
+Filter `orders` to `status == "completed"`, join with `customers` on
+`customer_id`, group by `customer_id` + `name`, sum `total_amount`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| order_date | date | |
-| daily_revenue | double | `round(sum(total_amount), 2)` for that day |
-| running_total | double | `round(cumulative sum of daily_revenue, 2)` |
+| customer_id | int | |
+| name | string | customer name |
+| total_spend | double | `round(sum(total_amount), 2)`, sorted DESC |
 
-Expected: one row per day, ordered `order_date` ASC.\
+Expected: **5 rows**, ordered by `total_spend` DESC.\
 """,
         ),
         (
@@ -134,22 +140,25 @@ solution_2 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 3: Month-over-Month Revenue Change
+## Problem 3: Monthly Revenue Trend
 
-Compare each month's revenue to the previous month and compute the percentage change.
+Aggregate orders by calendar month and track order volume alongside revenue.
 
-**Approach hint:** Aggregate to monthly revenue, then use
-`lag(monthly_revenue, 1) OVER (ORDER BY month)` to get the prior month's value.
-The first row will have `null` for `prev_revenue` and `mom_change_pct`.
+<details>
+<summary>Hint</summary>
+
+Use `F.date_format(order_date, "yyyy-MM")` to extract the month string,
+then group and aggregate.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
 | month | string | `"yyyy-MM"` format |
+| order_count | long | number of orders in the month |
 | monthly_revenue | double | `round(sum(total_amount), 2)` |
-| prev_revenue | double | prior month's revenue (null for first row) |
-| mom_change_pct | double | `round((monthly_revenue - prev_revenue) / prev_revenue * 100, 2)` |
 
-Expected: one row per month, ordered `month` ASC.\
+Expected: one row per month, ordered by `month` ASC.\
 """,
         ),
         (
@@ -165,23 +174,24 @@ solution_3 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 4: Top 2 Customers per Tier by Spend (Completed Orders Only)
+## Problem 4: Categories Where Average Item Price Exceeds $100
 
-Within each customer tier, find the two highest-spending customers — useful for tier-based
-loyalty targeting.
+Identify product categories where the average unit price of items sold is above $100.
 
-**Approach hint:** Filter to `status == "completed"`, join `customers`, aggregate spend,
-then apply `row_number() OVER (PARTITION BY tier ORDER BY total_spend DESC)`. Filter `rank_in_tier <= 2`.
+<details>
+<summary>Hint</summary>
+
+Join `order_items` with `products` on `product_id`, group by `category`,
+compute `avg(unit_price)`, then filter.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| tier | string | bronze / silver / gold / platinum |
-| customer_id | int | |
-| name | string | customer name |
-| total_spend | double | `round(sum(total_amount), 2)` |
-| rank_in_tier | int | 1 = top spender in that tier |
+| category | string | |
+| avg_item_price | double | `round(avg(unit_price), 2)`, filtered > 100, sorted DESC |
 
-Expected: up to 2 rows per tier, ordered `tier` ASC, `rank_in_tier` ASC.\
+Expected: subset of the 10 categories.\
 """,
         ),
         (
@@ -197,23 +207,28 @@ solution_4 = None  # ← your answer here\
         (
             "markdown",
             """\
-## Problem 5: Percentile Rank of Order Amounts Within Each Status
+## Problem 5: Customer Tier Performance Summary
 
-For each order, compute where it falls in the distribution of order amounts within its own
-status group — e.g. a "completed" order at the 90th percentile spent more than 90% of
-other completed orders.
+Summarise order activity and revenue by customer tier, then compute revenue per customer.
 
-**Approach hint:** Apply `percent_rank() OVER (PARTITION BY status ORDER BY total_amount)`
-directly on the `orders` DataFrame — no pre-aggregation needed.
+<details>
+<summary>Hint</summary>
+
+Join `orders` with `customers` on `customer_id`, group by `tier`, and use
+`countDistinct` for unique customers. Derive `revenue_per_customer` as a column expression
+after aggregation.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
-| order_id | int | |
-| status | string | completed / pending / cancelled / refunded |
-| total_amount | double | original order amount |
-| pct_rank | double | `round(percent_rank(), 4)`, 0.0 = lowest, 1.0 = highest |
+| tier | string | bronze / silver / gold / platinum |
+| unique_customers | long | `countDistinct(customer_id)` |
+| total_orders | long | `count(order_id)` |
+| total_revenue | double | `round(sum(total_amount), 2)` |
+| revenue_per_customer | double | `round(total_revenue / unique_customers, 2)` |
 
-Expected: all orders, ordered `status` ASC, `total_amount` ASC.\
+Expected: one row per tier, ordered by `tier` ASC.\
 """,
         ),
         (

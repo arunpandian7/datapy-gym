@@ -90,9 +90,14 @@ checker = Checker(spark, customers, products, orders, order_items)\
 
 Before salting, confirm that the skew actually exists. Find the five customers with the most orders.
 
-**Approach:** `groupBy("customer_id")` on `orders`, `count("order_id")` → `order_count`,
+<details>
+<summary>Hint</summary>
+
+`groupBy("customer_id")` on `orders`, `count("order_id")` → `order_count`,
 sort descending, limit 5. `customer_id=1` should appear at the top with a count far above
 the rest.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -120,9 +125,14 @@ solution_1 = None  # ← your answer here\
 A single number — `max_orders / avg_orders` — tells you how many times worse the hottest
 partition will be versus a balanced one. Compute it.
 
-**Approach:** Start from the per-customer counts computed in P1 (without the LIMIT).
+<details>
+<summary>Hint</summary>
+
+Start from the per-customer counts computed in P1 (without the LIMIT).
 Then aggregate again: `max(order_count)` → `max_orders`, `round(avg(order_count), 2)` →
 `avg_orders`, and derive `skew_ratio = round(max_orders / avg_orders, 2)`.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -150,6 +160,9 @@ solution_2 = None  # ← your answer here\
 
 Compute total revenue per customer using salting, then verify the result matches the naive approach.
 
+<details>
+<summary>Hint</summary>
+
 **Why two passes?** The salt makes every `customer_1_*` key unique, so the first `groupBy`
 is distributed across `N_SALT` tasks. The second `groupBy` strips the salt and merges partial
 sums — a cheap aggregation over already-reduced data.
@@ -162,6 +175,8 @@ sums — a cheap aggregation over already-reduced data.
 4. **Strip the salt:** `F.split(col("salted_key"), "_")[0].cast("int")` recovers `customer_id`.
 5. **Final aggregate:** `groupBy("customer_id")` → `round(sum("partial_sum"), 2)` as `total_revenue`.
 6. Sort by `customer_id` ASC.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -191,6 +206,9 @@ solution_3 = None  # ← your answer here\
 The join target (`platinum` customers) is a small lookup table, but the probe side (`orders`)
 is skewed: `customer_id=1` sends 30% of rows to one task. Salting distributes that work.
 
+<details>
+<summary>Hint</summary>
+
 **Why replicate the lookup?** A normal join hashes both sides on `customer_id`. With salting,
 the `orders` side uses `customer_1_0`, `customer_1_1`, …, `customer_1_4` as keys — the lookup
 must have a matching row for *each* salt value, otherwise those orders would be dropped.
@@ -207,6 +225,8 @@ row finds a match.
    create matching `salted_key = concat(customer_id_str, "_", salt_str)`.
 4. **Join** on `salted_key`.
 5. **Select:** `order_id`, `customer_id` (from orders), `name`, `total_amount`. Sort `order_id` ASC.
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -237,7 +257,9 @@ solution_4 = None  # ← your answer here\
 Put a number on the improvement. Build both the un-salted and salted repartitioned DataFrames
 and compare their worst-case partition imbalance.
 
-**Approach:**
+<details>
+<summary>Hint</summary>
+
 - **Unsalted:** `orders.repartition(10, col("customer_id"))` — hash partition on the raw key.
 - **Salted:** add a random salt column, create `salted_key = concat(customer_id_str, "_", salt_str)`,
   then `repartition(10, col("salted_key"))`.
@@ -249,6 +271,8 @@ reduce to three stats:
 - `hottest_ratio` — `round(max / avg, 2)` — the skew multiplier
 
 Return a two-row DataFrame with an `approach` column (`"unsalted"` / `"salted"`).
+
+</details>
 
 | Column | Type | Notes |
 |--------|------|-------|
