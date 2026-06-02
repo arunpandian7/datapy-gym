@@ -17,7 +17,7 @@ from pathlib import Path
 import sys
 
 _cwd = Path.cwd()
-_candidates = [_cwd / "pyspark", _cwd, _cwd.parent / "pyspark", _cwd.parent.parent / "pyspark"]
+_candidates = [_cwd / "pyspark", _cwd, _cwd.parent, _cwd.parent / "pyspark", _cwd.parent.parent, _cwd.parent.parent / "pyspark"]
 _pyspark_dir = next((p for p in _candidates if (p / "utils" / "__init__.py").exists()), None)
 if _pyspark_dir is None:
     raise RuntimeError("Cannot locate pyspark/utils. Run: uv run jupyter lab from the project root.")
