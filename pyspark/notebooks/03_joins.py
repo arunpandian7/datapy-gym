@@ -44,6 +44,12 @@ print(f"customers:   {customers.count():>6,}")
 print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
+
+from utils.checks.joins import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
+
+from utils.checks.joins import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
 """),
 
         # ════════════════════════════════════════════════════════════════════
@@ -77,30 +83,7 @@ Expected: all completed-order line items, unordered.\
 solution_1 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_products_1 = products.withColumnRenamed("name", "product_name")
-_customers_1 = customers.withColumnRenamed("name", "customer_name")
-
-_expected_1 = (
-    order_items
-    .join(orders, "order_id")
-    .filter(F.col("status") == "completed")
-    .join(_products_1, "product_id")
-    .join(_customers_1, "customer_id")
-    .select(
-        "order_id",
-        "order_date",
-        "customer_name",
-        "tier",
-        "product_name",
-        "category",
-        "quantity",
-        "unit_price",
-        F.round(F.col("quantity") * F.col("unit_price"), 2).alias("line_total"),
-    )
-)
-check(solution_1, _expected_1, problem="P1: Enriched Order Line Items", ordered=False)\
-"""),
+        ("code", "checker.p1(solution_1)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
@@ -128,16 +111,7 @@ Expected: all customers absent from `orders`, sorted by `customer_id` ASC.\
 solution_2 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_ordered_customers_2 = orders.select("customer_id").distinct()
-_expected_2 = (
-    customers
-    .join(_ordered_customers_2, on="customer_id", how="left_anti")
-    .select("customer_id", "name", "email", "tier")
-    .orderBy("customer_id")
-)
-check(solution_2, _expected_2, problem="P2: Customers Who Have Never Ordered", ordered=True)\
-"""),
+        ("code", "checker.p2(solution_2)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
@@ -164,23 +138,7 @@ Expected: 10 rows, ordered by `times_bought_together` DESC.\
 solution_3 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_a_3 = order_items.alias("a")
-_b_3 = order_items.alias("b")
-_expected_3 = (
-    _a_3
-    .join(_b_3, on="order_id")
-    .filter(F.col("a.product_id") < F.col("b.product_id"))
-    .groupBy(
-        F.col("a.product_id").alias("product_id_1"),
-        F.col("b.product_id").alias("product_id_2"),
-    )
-    .agg(F.count("*").alias("times_bought_together"))
-    .orderBy(F.col("times_bought_together").desc())
-    .limit(10)
-)
-check(solution_3, _expected_3, problem="P3: Most Frequently Bought Product Pairs", ordered=True)\
-"""),
+        ("code", "checker.p3(solution_3)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
@@ -211,22 +169,7 @@ Expected: customers present in both category buyer sets, sorted by `customer_id`
 solution_4 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_items_with_cat_4 = (
-    order_items
-    .join(products, "product_id")
-    .join(orders.select("order_id", "customer_id"), "order_id")
-)
-_elec_4 = _items_with_cat_4.filter(F.col("category") == "Electronics").select("customer_id").distinct()
-_sport_4 = _items_with_cat_4.filter(F.col("category") == "Sports").select("customer_id").distinct()
-_expected_4 = (
-    _elec_4
-    .join(_sport_4, "customer_id")
-    .join(customers.select("customer_id", "name"), "customer_id")
-    .orderBy("customer_id")
-)
-check(solution_4, _expected_4, problem="P4: Customers Who Bought From Both Electronics AND Sports", ordered=True)\
-"""),
+        ("code", "checker.p4(solution_4)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
@@ -254,17 +197,6 @@ Expected: one row per tier, sorted by `tier` ASC.\
 solution_5 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_total_5 = orders.agg(F.sum("total_amount")).first()[0]
-_expected_5 = (
-    orders
-    .join(customers, "customer_id")
-    .groupBy("tier")
-    .agg(F.round(F.sum("total_amount"), 2).alias("tier_revenue"))
-    .withColumn("revenue_share_pct", F.round(F.col("tier_revenue") / _total_5 * 100, 2))
-    .orderBy("tier")
-)
-check(solution_5, _expected_5, problem="P5: Revenue Share by Customer Tier", ordered=True)\
-"""),
+        ("code", "checker.p5(solution_5)"),
 
     ]

@@ -46,6 +46,12 @@ print(f"customers:   {customers.count():>6,}")
 print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
+
+from utils.checks.window_functions import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
+
+from utils.checks.window_functions import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
 """),
 
         # ── Data preview ─────────────────────────────────────────────────────
@@ -82,23 +88,7 @@ Expected: up to 3 rows per category (ties keep all), ordered `category` ASC, `ra
 solution_1 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_joined_1 = order_items.join(products, "product_id")
-_agg_1 = (
-    _joined_1
-    .groupBy("product_id", F.col("name"), "category")
-    .agg(F.round(F.sum(F.col("quantity") * F.col("unit_price")), 2).alias("revenue"))
-)
-_w1 = Window.partitionBy("category").orderBy(F.col("revenue").desc())
-_expected_1 = (
-    _agg_1
-    .withColumn("rank", F.dense_rank().over(_w1))
-    .filter(F.col("rank") <= 3)
-    .select("category", "name", "revenue", "rank")
-    .orderBy("category", "rank")
-)
-check(solution_1, _expected_1, problem="P1: Top 3 Products by Revenue Within Each Category", ordered=True)\
-"""),
+        ("code", "checker.p1(solution_1)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
@@ -125,20 +115,7 @@ Expected: one row per day, ordered `order_date` ASC.\
 solution_2 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_daily_2 = (
-    orders
-    .groupBy("order_date")
-    .agg(F.round(F.sum("total_amount"), 2).alias("daily_revenue"))
-)
-_w2 = Window.orderBy("order_date").rowsBetween(Window.unboundedPreceding, Window.currentRow)
-_expected_2 = (
-    _daily_2
-    .withColumn("running_total", F.round(F.sum("daily_revenue").over(_w2), 2))
-    .orderBy("order_date")
-)
-check(solution_2, _expected_2, problem="P2: Cumulative Daily Revenue", ordered=True)\
-"""),
+        ("code", "checker.p2(solution_2)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
@@ -166,25 +143,7 @@ Expected: one row per month, ordered `month` ASC.\
 solution_3 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_monthly_3 = (
-    orders
-    .withColumn("month", F.date_format("order_date", "yyyy-MM"))
-    .groupBy("month")
-    .agg(F.round(F.sum("total_amount"), 2).alias("monthly_revenue"))
-)
-_w3 = Window.orderBy("month")
-_expected_3 = (
-    _monthly_3
-    .withColumn("prev_revenue", F.lag("monthly_revenue", 1).over(_w3))
-    .withColumn(
-        "mom_change_pct",
-        F.round((F.col("monthly_revenue") - F.col("prev_revenue")) / F.col("prev_revenue") * 100, 2),
-    )
-    .orderBy("month")
-)
-check(solution_3, _expected_3, problem="P3: Month-over-Month Revenue Change", ordered=True)\
-"""),
+        ("code", "checker.p3(solution_3)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
@@ -213,24 +172,7 @@ Expected: up to 2 rows per tier, ordered `tier` ASC, `rank_in_tier` ASC.\
 solution_4 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_completed_4 = orders.filter(F.col("status") == "completed")
-_agg_4 = (
-    _completed_4
-    .join(customers, "customer_id")
-    .groupBy("customer_id", "name", "tier")
-    .agg(F.round(F.sum("total_amount"), 2).alias("total_spend"))
-)
-_w4 = Window.partitionBy("tier").orderBy(F.col("total_spend").desc())
-_expected_4 = (
-    _agg_4
-    .withColumn("rank_in_tier", F.row_number().over(_w4))
-    .filter(F.col("rank_in_tier") <= 2)
-    .select("tier", "customer_id", "name", "total_spend", "rank_in_tier")
-    .orderBy("tier", "rank_in_tier")
-)
-check(solution_4, _expected_4, problem="P4: Top 2 Customers per Tier by Spend (Completed Orders Only)", ordered=True)\
-"""),
+        ("code", "checker.p4(solution_4)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
@@ -259,15 +201,6 @@ Expected: all orders, ordered `status` ASC, `total_amount` ASC.\
 solution_5 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_w5 = Window.partitionBy("status").orderBy("total_amount")
-_expected_5 = (
-    orders
-    .withColumn("pct_rank", F.round(F.percent_rank().over(_w5), 4))
-    .select("order_id", "status", "total_amount", "pct_rank")
-    .orderBy("status", "total_amount")
-)
-check(solution_5, _expected_5, problem="P5: Percentile Rank of Order Amounts Within Each Status", ordered=True)\
-"""),
+        ("code", "checker.p5(solution_5)"),
 
     ]

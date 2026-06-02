@@ -67,6 +67,12 @@ print(f"customers:   {customers.count():>6,}")
 print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
+
+from utils.checks.salting import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
+
+from utils.checks.salting import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
 """),
 
         # ════════════════════════════════════════════════════════════════════
@@ -93,16 +99,7 @@ Expected: 5 rows, ordered by `order_count` DESC.\
 solution_1 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_expected_1 = (
-    orders
-    .groupBy("customer_id")
-    .agg(F.count("order_id").alias("order_count"))
-    .orderBy(F.col("order_count").desc())
-    .limit(5)
-)
-check(solution_1, _expected_1, problem="P1: Identify the Skew", ordered=True)\
-"""),
+        ("code", "checker.p1(solution_1)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
@@ -130,15 +127,7 @@ Expected: a single-row DataFrame.\
 solution_2 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_per_customer_2 = orders.groupBy("customer_id").agg(F.count("order_id").alias("order_count"))
-_expected_2 = _per_customer_2.agg(
-    F.max("order_count").alias("max_orders"),
-    F.round(F.avg("order_count"), 2).alias("avg_orders"),
-    F.round(F.max("order_count") / F.avg("order_count"), 2).alias("skew_ratio"),
-)
-check(solution_2, _expected_2, problem="P2: Quantify the Skew Ratio", ordered=False)\
-"""),
+        ("code", "checker.p2(solution_2)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
@@ -175,16 +164,7 @@ N_SALT = 10
 solution_3 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_expected_3 = (
-    orders
-    .groupBy("customer_id")
-    .agg(F.round(F.sum("total_amount"), 2).alias("total_revenue"))
-    .orderBy("customer_id")
-)
-check(solution_3, _expected_3, problem="P3: Salted GroupBy — Total Revenue per Customer",
-      ordered=True, precision=0.02)\
-"""),
+        ("code", "checker.p3(solution_3)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
@@ -227,17 +207,7 @@ N_SALT = 5
 solution_4 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_lookup_4 = customers.filter(F.col("tier") == "platinum").select("customer_id", "name")
-_expected_4 = (
-    orders
-    .join(_lookup_4, "customer_id")
-    .select("order_id", "customer_id", "name", "total_amount")
-    .orderBy("order_id")
-)
-check(solution_4, _expected_4, problem="P4: Salted Join — Orders for Platinum Customers",
-      ordered=True, precision=0.01)\
-"""),
+        ("code", "checker.p4(solution_4)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
@@ -275,39 +245,6 @@ A well-salted result should have a `hottest_ratio` close to 1.0; unsalted will b
 solution_5 = None  # ← your answer here\
 """),
 
-        ("code", """\
-def _partition_stats(df, label):
-    # Returns a single-row DataFrame with hotspot stats for df, labelled with label.
-    _counts = (
-        df
-        .withColumn("_pid", F.spark_partition_id())
-        .groupBy("_pid")
-        .agg(F.count("*").alias("_rows"))
-    )
-    return _counts.agg(
-        F.lit(label).alias("approach"),
-        F.max("_rows").alias("max_partition_rows"),
-        F.round(F.avg("_rows"), 0).cast("long").alias("avg_partition_rows"),
-        F.round(F.max("_rows") / F.avg("_rows"), 2).alias("hottest_ratio"),
-    )
-
-_unsalted_5 = orders.repartition(10, F.col("customer_id"))
-_salted_orders_5 = (
-    orders
-    .withColumn("_salt", (F.rand(seed=42) * 10).cast("int"))
-    .withColumn("salted_key", F.concat(
-        F.col("customer_id").cast("string"), F.lit("_"), F.col("_salt").cast("string")
-    ))
-)
-_salted_5 = _salted_orders_5.repartition(10, F.col("salted_key"))
-
-_expected_5 = (
-    _partition_stats(_unsalted_5, "unsalted")
-    .union(_partition_stats(_salted_5, "salted"))
-    .orderBy("approach")
-)
-check(solution_5, _expected_5, problem="P5: Compare Partition Hotspot Before and After Salting",
-      ordered=True)\
-"""),
+        ("code", "checker.p5(solution_5)"),
 
     ]

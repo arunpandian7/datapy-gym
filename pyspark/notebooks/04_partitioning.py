@@ -45,6 +45,12 @@ print(f"customers:   {customers.count():>6,}")
 print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
+
+from utils.checks.partitioning import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
+
+from utils.checks.partitioning import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
 """),
 
         # ════════════════════════════════════════════════════════════════════
@@ -72,17 +78,7 @@ should be roughly even.\
 solution_1 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_repartitioned_1 = orders.repartition(4)
-_expected_1 = (
-    _repartitioned_1
-    .withColumn("partition_id", F.spark_partition_id())
-    .groupBy("partition_id")
-    .agg(F.count("*").alias("row_count"))
-    .orderBy("partition_id")
-)
-check(solution_1, _expected_1, problem="P1: Row Distribution After repartition(4)", ordered=True)\
-"""),
+        ("code", "checker.p1(solution_1)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
@@ -113,17 +109,7 @@ Expected: 10 rows, sorted by `row_count` DESC.\
 solution_2 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_repartitioned_2 = orders.repartition(10, F.col("customer_id"))
-_expected_2 = (
-    _repartitioned_2
-    .withColumn("partition_id", F.spark_partition_id())
-    .groupBy("partition_id")
-    .agg(F.count("*").alias("row_count"))
-    .orderBy(F.col("row_count").desc())
-)
-check(solution_2, _expected_2, problem="P2: Partition Skew on customer_id", ordered=True)\
-"""),
+        ("code", "checker.p2(solution_2)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
@@ -150,17 +136,7 @@ Expected: 5 rows, sorted by `partition_id` ASC.\
 solution_3 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_repartitioned_3 = orders.repartition(20).coalesce(5)
-_expected_3 = (
-    _repartitioned_3
-    .withColumn("partition_id", F.spark_partition_id())
-    .groupBy("partition_id")
-    .agg(F.count("*").alias("row_count"))
-    .orderBy("partition_id")
-)
-check(solution_3, _expected_3, problem="P3: Coalesce vs Repartition", ordered=True)\
-"""),
+        ("code", "checker.p3(solution_3)"),
 
         ("markdown", """\
 **Observation:** Run `.explain()` on `orders.repartition(20).coalesce(5)` and look at the
@@ -198,23 +174,7 @@ Expected: 4 rows, sorted by `total_revenue` DESC.\
 solution_4 = None  # ← your answer here\
 """),
 
-        ("code", """\
-spark.conf.set("spark.sql.shuffle.partitions", "4")
-_expected_4 = (
-    orders
-    .groupBy("status")
-    .agg(F.round(F.sum("total_amount"), 2).alias("total_revenue"))
-    .orderBy(F.col("total_revenue").desc())
-)
-spark.conf.set("spark.sql.shuffle.partitions", "8")
-
-check(solution_4, _expected_4, problem="P4: Shuffle Partition Control", ordered=True)
-
-# Verify the partition count on your solution:
-if solution_4 is not None:
-    _nparts = solution_4.rdd.getNumPartitions()
-    print(f"solution_4 partition count: {_nparts}  (equals 4: {_nparts == 4})")\
-"""),
+        ("code", "checker.p4(solution_4)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
@@ -244,20 +204,6 @@ Expected: 5 rows, sorted by `partition_id` ASC.\
 solution_5 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_range_partitioned_5 = orders.repartitionByRange(5, F.col("total_amount"))
-_expected_5 = (
-    _range_partitioned_5
-    .withColumn("partition_id", F.spark_partition_id())
-    .groupBy("partition_id")
-    .agg(
-        F.min("total_amount").alias("min_amount"),
-        F.max("total_amount").alias("max_amount"),
-        F.count("*").alias("row_count"),
-    )
-    .orderBy("partition_id")
-)
-check(solution_5, _expected_5, problem="P5: Range-Based Partitioning", ordered=True)\
-"""),
+        ("code", "checker.p5(solution_5)"),
 
     ]

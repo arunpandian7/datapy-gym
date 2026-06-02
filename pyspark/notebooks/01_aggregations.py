@@ -45,6 +45,12 @@ print(f"customers:   {customers.count():>6,}")
 print(f"products:    {products.count():>6,}")
 print(f"orders:      {orders.count():>6,}")
 print(f"order_items: {order_items.count():>6,}")\
+
+from utils.checks.aggregations import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
+
+from utils.checks.aggregations import Checker
+checker = Checker(spark, customers, products, orders, order_items)\
 """),
 
         # ── Data preview ─────────────────────────────────────────────────────
@@ -79,16 +85,7 @@ Expected: **10 rows** (one per category).\
 solution_1 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_joined_1 = order_items.join(products, "product_id")
-_expected_1 = (
-    _joined_1
-    .groupBy("category")
-    .agg(F.round(F.sum(F.col("quantity") * F.col("unit_price")), 2).alias("total_revenue"))
-    .orderBy(F.col("total_revenue").desc())
-)
-check(solution_1, _expected_1, problem="P1: Revenue by Product Category")\
-"""),
+        ("code", "checker.p1(solution_1)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 2
@@ -114,18 +111,7 @@ Expected: **5 rows**, ordered by `total_spend` DESC.\
 solution_2 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_completed_2 = orders.filter(F.col("status") == "completed")
-_expected_2 = (
-    _completed_2
-    .join(customers, "customer_id")
-    .groupBy("customer_id", "name")
-    .agg(F.round(F.sum("total_amount"), 2).alias("total_spend"))
-    .orderBy(F.col("total_spend").desc())
-    .limit(5)
-)
-check(solution_2, _expected_2, problem="P2: Top 5 Customers by Completed Spend", ordered=True)\
-"""),
+        ("code", "checker.p2(solution_2)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 3
@@ -151,19 +137,7 @@ Expected: one row per month, ordered by `month` ASC.\
 solution_3 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_expected_3 = (
-    orders
-    .withColumn("month", F.date_format("order_date", "yyyy-MM"))
-    .groupBy("month")
-    .agg(
-        F.count("order_id").alias("order_count"),
-        F.round(F.sum("total_amount"), 2).alias("monthly_revenue"),
-    )
-    .orderBy("month")
-)
-check(solution_3, _expected_3, problem="P3: Monthly Revenue Trend", ordered=True)\
-"""),
+        ("code", "checker.p3(solution_3)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 4
@@ -188,17 +162,7 @@ Expected: subset of the 10 categories.\
 solution_4 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_joined_4 = order_items.join(products, "product_id")
-_expected_4 = (
-    _joined_4
-    .groupBy("category")
-    .agg(F.round(F.avg("unit_price"), 2).alias("avg_item_price"))
-    .filter(F.col("avg_item_price") > 100)
-    .orderBy(F.col("avg_item_price").desc())
-)
-check(solution_4, _expected_4, problem="P4: Categories Where Average Item Price Exceeds $100")\
-"""),
+        ("code", "checker.p4(solution_4)"),
 
         # ════════════════════════════════════════════════════════════════════
         # Problem 5
@@ -227,20 +191,6 @@ Expected: one row per tier, ordered by `tier` ASC.\
 solution_5 = None  # ← your answer here\
 """),
 
-        ("code", """\
-_expected_5 = (
-    orders
-    .join(customers, "customer_id")
-    .groupBy("tier")
-    .agg(
-        F.countDistinct("customer_id").alias("unique_customers"),
-        F.count("order_id").alias("total_orders"),
-        F.round(F.sum("total_amount"), 2).alias("total_revenue"),
-    )
-    .withColumn("revenue_per_customer", F.round(F.col("total_revenue") / F.col("unique_customers"), 2))
-    .orderBy("tier")
-)
-check(solution_5, _expected_5, problem="P5: Customer Tier Performance Summary")\
-"""),
+        ("code", "checker.p5(solution_5)"),
 
     ]
