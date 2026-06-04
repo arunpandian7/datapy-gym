@@ -13,6 +13,8 @@ pyspark/data/*.csv
 pyspark/data/*.parquet
 pyspark/data/parquet/
 
+sql/data/*.csv
+
 **/.ipynb_checkpoints/
 
 .DS_Store

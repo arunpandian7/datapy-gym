@@ -2,46 +2,101 @@
 
 ## What this is
 
-A local PySpark interview prep gym. Five notebooks covering the topics that come up most in data engineering coding rounds — aggregations, window functions, joins, partitioning, and salting. The dataset is synthetic e-commerce data (500 customers, 100 products, 8 000 orders, ~20 000 line items) with intentional skew baked in. Each problem has a check cell that validates your answer automatically. Sessions are date-stamped directories under `pyspark/sessions/`, so your git history is a record of every attempt.
+A local data engineering interview prep gym with two practice tracks:
+
+**PySpark track** — five notebooks covering the topics that come up most in data engineering coding rounds: aggregations, window functions, joins, partitioning, and salting. Synthetic e-commerce dataset (500 customers, 100 products, 8 000 orders, ~20 000 line items) with intentional skew baked in.
+
+**SQL/DuckDB track** — five notebooks covering SQL interview topics using a fintech/payments dataset (users, merchants, accounts, 20 000 transactions). DuckDB runs embedded — no server needed. Topics: aggregations, window functions, joins, CTEs & recursive queries, and time series analysis. SQL dialect is close to Snowflake and PostgreSQL; hints call out cross-warehouse portability.
+
+Each problem has a check cell that validates your answer automatically. Sessions are date-stamped directories so your git history is a record of every attempt.
+
+---
 
 ## Prerequisites
 
 - Python 3.13+
 - Java 11+ (required by PySpark — check with `java -version`)
 - uv (`pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- Nothing else — PySpark and JupyterLab are installed in the project venv
+- Nothing else — all dependencies are installed in the project venv by `uv sync`
+
+---
 
 ## Setup (one-time)
 
 ```bash
 git clone <repo-url>
 cd datapy-gym
-uv sync                                        # installs all deps into .venv
-uv run python pyspark/data/generate_data.py   # creates the CSV datasets
+uv sync                                        # creates .venv with all deps
+
+# PySpark track
+uv run python pyspark/data/generate_data.py   # generates e-commerce CSVs
 uv run python pyspark/reset.py                # generates today's notebooks
-uv run jupyter lab pyspark/sessions/2026-06-02/
+
+# SQL track
+uv run python sql/data/generate_data.py       # generates fintech CSVs
+uv run python sql/reset.py                    # generates today's notebooks
 ```
+
+---
+
+## Opening notebooks
+
+### JupyterLab
+
+```bash
+# PySpark track
+uv run jupyter lab pyspark/sessions/$(date +%F)/
+
+# SQL track
+uv run jupyter lab sql/sessions/$(date +%F)/
+```
+
+### VS Code
+
+1. Install the [Jupyter extension](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) (`ms-toolsai.jupyter`)
+2. Open any `.ipynb` file directly from the `sessions/` directory
+3. Select the kernel: click **Select Kernel** (top-right) → **Python Environments** → choose `.venv`
+   - If `.venv` isn't listed: `Ctrl+Shift+P` → **Python: Select Interpreter** → pick `./.venv/bin/python`
+
+---
 
 ## Daily workflow
 
 ```bash
-uv run python pyspark/reset.py        # fresh notebooks for today
-uv run jupyter lab pyspark/sessions/$(date +%F)/
+# PySpark
+uv run python pyspark/reset.py
+uv run jupyter lab pyspark/sessions/$(date +%F)/    # or open in VS Code
 
-# after your session, commit your work
-git add pyspark/sessions/
+# SQL
+uv run python sql/reset.py
+uv run jupyter lab sql/sessions/$(date +%F)/        # or open in VS Code
+
+# commit your work after each session
+git add pyspark/sessions/ sql/sessions/
 git commit -m "session: $(date +%F)"
 ```
 
-## Resetting
+---
+
+## Resetting notebooks
 
 ```bash
+# PySpark
 uv run python pyspark/reset.py              # all 5 notebooks, prompts before overwrite
 uv run python pyspark/reset.py 03           # just notebook 03 (joins)
 uv run python pyspark/reset.py --force      # skip overwrite prompt
+
+# SQL
+uv run python sql/reset.py                  # all 5 notebooks
+uv run python sql/reset.py 04               # just notebook 04 (CTEs)
+uv run python sql/reset.py --force
 ```
 
+---
+
 ## Topics
+
+### PySpark track (e-commerce dataset)
 
 | # | Notebook | What it covers |
 |---|----------|----------------|
@@ -51,40 +106,61 @@ uv run python pyspark/reset.py --force      # skip overwrite prompt
 | 04 | Partitioning | `repartition` vs `coalesce`, partition-by-column, `repartitionByRange`, shuffle partition control |
 | 05 | Salting | Skew detection, salted `groupBy` (two-pass), salted join (replicated lookup), hotspot comparison |
 
+### SQL track (fintech/payments dataset, DuckDB)
+
+| # | Notebook | What it covers |
+|---|----------|----------------|
+| 01 | Aggregations | `GROUP BY`, `HAVING`, `DATE_TRUNC`, conditional agg (`FILTER`/`CASE WHEN`), multi-table `LEFT JOIN` |
+| 02 | Window Functions | Running totals, `DENSE_RANK`+`QUALIFY`, `LAG`, `ROW_NUMBER`, `PERCENT_RANK` |
+| 03 | Joins | 4-table `INNER JOIN`, anti-join, self-join, subquery intersection, derived-table comparison |
+| 04 | CTEs | Multi-step CTE chains, `QUALIFY`, deduplication, recursive CTE (date series) |
+| 05 | Time Series | Rolling windows, cohort analysis, gap detection, year-over-year, anomaly detection |
+
+---
+
 ## How problems work
 
-Each notebook follows the same pattern. You get a markdown cell describing what to build, a solution stub, and a check cell:
+### PySpark
 
-```python
-## Problem 1: Revenue by Product Category
-
-# For every product category, compute the total revenue across all order line items.
-# Expected: 10 rows, columns: category (string), total_revenue (double), sorted DESC.
-```
+Each notebook follows the same pattern: markdown description → solution stub (assign a DataFrame) → check cell.
 
 ```python
 solution_1 = None  # ← your answer here
 ```
 
 ```python
-check(solution_1, _expected_1, problem="P1: Revenue by Product Category")
+checker.p1(solution_1)
+```
+
+### SQL
+
+Same pattern, but the solution is a SQL string:
+
+```python
+solution_1 = """
+SELECT category, ROUND(SUM(quantity * unit_price), 2) AS total_revenue
+FROM order_items JOIN products USING (product_id)
+GROUP BY category
+ORDER BY total_revenue DESC
+"""
+checker.p1(solution_1)
 ```
 
 Running the check cell renders inline feedback:
 
 ```
-P1: Revenue by Product Category
-✓ columns match: ['category', 'total_revenue']
-✓ row count: 10
+P1: Total Spending by MCC Category
+✓ columns match: ['mcc_category', 'total_spent']
+✓ row count: 8
 ✓ values match
 All checks passed!
 ```
 
-If something is wrong you get a specific failure message — column mismatch, row count off, or which values differ.
+---
 
-## Dataset
+## Datasets
 
-Four CSV files generated by `pyspark/data/generate_data.py`:
+### PySpark — e-commerce
 
 | Table | Rows | Key columns |
 |-------|------|-------------|
@@ -93,10 +169,23 @@ Four CSV files generated by `pyspark/data/generate_data.py`:
 | `orders` | 8 000 | `order_id`, `customer_id`, `order_date`, `status`, `total_amount` |
 | `order_items` | ~20 000 | `item_id`, `order_id`, `product_id`, `quantity`, `unit_price` |
 
-`customer_id=1` owns 30% of all orders (2 400 out of 8 000). This is deliberate. It's what makes the salting notebook realistic — a naive `groupBy` on `customer_id` produces a single overloaded task, and you can measure the difference after applying the salt.
+`customer_id=1` owns 30% of all orders — deliberate skew for the salting notebook.
+
+### SQL — fintech/payments
+
+| Table | Rows | Key columns |
+|-------|------|-------------|
+| `users` | 500 | `user_id`, `name`, `country`, `tier` (basic/premium/business), `created_date` |
+| `merchants` | 200 | `merchant_id`, `name`, `mcc_category` (8 categories), `city`, `country` |
+| `accounts` | 600 | `account_id`, `user_id`, `account_type` (checking/savings/credit), `status` |
+| `transactions` | 20 000 | `txn_id`, `account_id`, `merchant_id`, `amount`, `txn_type`, `txn_date`, `status` |
+
+Top 20 accounts hold 30% of transactions — skew for realistic window function and aggregation problems.
+
+---
 
 ## Adding problems
 
-Edit the relevant `pyspark/templates/NN_topic.py` and add a new `(markdown, ...)` / `(code, ...)` / `(code, ...)` triple following the existing pattern (problem description → solution stub → check cell). Regenerate with `uv run python pyspark/reset.py NN` to produce a fresh notebook for today's session.
+Edit the relevant `*/templates/NN_topic.py` and add a new `(markdown, ...)` / `(code, ...)` / `(code, ...)` triple following the existing pattern. Regenerate with `uv run python */reset.py NN`.
 
 The `templates/` directory is the source of truth — `.py` files there define every problem. The `.ipynb` notebooks in `sessions/` are generated from them and should never be edited directly.

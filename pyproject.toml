@@ -11,6 +11,7 @@ dependencies = [
     "ipywidgets>=8.0.0",
     "nbformat>=5.9.0",
     "jupyterlab-code-formatter>=3.0.3",
+    "duckdb",
 ]
 
 [dependency-groups]
@@ -24,6 +25,9 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 ignore = ["E402", "E501"]  # E402: imports not at top (notebook setup cells); E501: long lines in markdown strings
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["I"]  # isort not applicable to notebooks — imports are spread across cells by design
 
 [tool.ruff.format]
 quote-style = "double"

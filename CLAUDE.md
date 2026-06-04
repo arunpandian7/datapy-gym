@@ -1,6 +1,6 @@
 # CLAUDE.md — datapy-gym
 
-Local coding gym for data engineering interview practice. Currently implements a PySpark track; designed to support additional stacks (pandas, polars, etc.).
+Local coding gym for data engineering interview practice. Implements a **PySpark track** (e-commerce domain) and a **SQL/DuckDB track** (fintech/payments domain); designed to support additional stacks (pandas, polars, etc.).
 
 ---
 
@@ -134,14 +134,16 @@ No changes needed to `pyproject.toml` beyond `uv add`; uv manages it.
 
 ## Session git workflow
 
-- `pyspark/templates/*.py` — templates, source of truth, always committed
-- `pyspark/sessions/YYYY-MM-DD/*.ipynb` — generated session notebooks, committed (so practice work is saved)
-- `pyspark/data/*.csv` — gitignored, regenerated on demand
-- `pyspark/sessions/.gitkeep` — keeps the sessions/ directory tracked when empty
+- `*/templates/*.py` — templates, source of truth, always committed
+- `*/sessions/YYYY-MM-DD/*.ipynb` — generated session notebooks, committed (so practice work is saved)
+- `*/data/*.csv` — gitignored, regenerated on demand
+- `*/sessions/.gitkeep` — keeps the sessions/ directory tracked when empty
 
 ---
 
 ## Key file map
+
+### PySpark track (e-commerce domain)
 
 | File | Purpose |
 |------|---------|
@@ -151,25 +153,47 @@ No changes needed to `pyproject.toml` beyond `uv add`; uv manages it.
 | `pyspark/utils/__init__.py` | `get_spark()` and `check()` used inside every notebook |
 | `pyspark/data/generate_data.py` | Generates the four CSV files with fixed seed (42) |
 | `pyspark/data/*.csv` | Gitignored data files; recreate if missing |
-| `pyproject.toml` | Project deps (pyspark, jupyterlab, chispa, pandas, numpy, nbformat) |
+
+### SQL track (fintech/payments domain, DuckDB backend)
+
+| File | Purpose |
+|------|---------|
+| `sql/reset.py` | CLI: converts `.py` templates → dated `.ipynb` session files |
+| `sql/templates/NN_*.py` | Template source (01–05); defines `cells()` |
+| `sql/sessions/YYYY-MM-DD/*.ipynb` | Active practice notebooks; committed |
+| `sql/utils/__init__.py` | `get_conn(data_dir)` and `check(sql_str, expected_df, conn, ...)` |
+| `sql/utils/checks/TOPIC.py` | Per-topic `Checker` class with `p1`–`p5` methods |
+| `sql/data/generate_data.py` | Generates users/merchants/accounts/transactions CSVs (seed 42) |
+| `sql/data/*.csv` | Gitignored; regenerate if missing |
+
+**SQL topics:** 01 aggregations · 02 window functions · 03 joins · 04 CTEs · 05 time series  
+**Student answer format:** `solution_N = "SELECT ..."` (SQL string), checked via `checker.pN(solution_N)`
+
+| File | Purpose |
+|------|---------|
+| `pyproject.toml` | Project deps (pyspark, duckdb, jupyterlab, pandas, numpy, nbformat) |
 | `uv.lock` | Locked dependency tree |
 
 ---
 
 ## Running the project
 
+### PySpark track
+
 ```bash
-# 1. Install deps (first time or after pulling)
 uv sync
-
-# 2. Generate data if CSVs are absent
-uv run python pyspark/data/generate_data.py
-
-# 3. Create today's session notebooks
+uv run python pyspark/data/generate_data.py   # if CSVs missing
 uv run python pyspark/reset.py
-
-# 4. Launch Jupyter
-uv run jupyter lab pyspark/sessions/2026-06-02/
+uv run jupyter lab pyspark/sessions/YYYY-MM-DD/
 ```
 
-Use the actual date directory produced by step 3 in the `jupyter lab` command.
+### SQL track
+
+```bash
+uv sync
+uv run python sql/data/generate_data.py       # if CSVs missing
+uv run python sql/reset.py
+uv run jupyter lab sql/sessions/YYYY-MM-DD/
+```
+
+Use the actual date directory produced by `reset.py` in the `jupyter lab` command.
