@@ -18,8 +18,9 @@ class Checker:
             .agg(F.count("*").alias("row_count"))
             .orderBy("partition_id")
         )
-        return check(solution, expected,
-                     problem="P1: Row Distribution After repartition(4)", ordered=True)
+        return check(
+            solution, expected, problem="P1: Row Distribution After repartition(4)", ordered=True
+        )
 
     def p2(self, solution):
         expected = (
@@ -29,12 +30,12 @@ class Checker:
             .agg(F.count("*").alias("row_count"))
             .orderBy(F.col("row_count").desc())
         )
-        return check(solution, expected,
-                     problem="P2: Partition Skew on customer_id", ordered=True)
+        return check(solution, expected, problem="P2: Partition Skew on customer_id", ordered=True)
 
     def p3(self, solution):
         expected = (
-            self.orders.repartition(20).coalesce(5)
+            self.orders.repartition(20)
+            .coalesce(5)
             .withColumn("partition_id", F.spark_partition_id())
             .groupBy("partition_id")
             .agg(F.count("*").alias("row_count"))
@@ -43,10 +44,10 @@ class Checker:
         return check(solution, expected, problem="P3: Coalesce vs Repartition", ordered=True)
 
     def p4(self, solution):
+        self.spark.conf.set("spark.sql.adaptive.enabled", False)
         self.spark.conf.set("spark.sql.shuffle.partitions", "4")
         expected = (
-            self.orders
-            .groupBy("status")
+            self.orders.groupBy("status")
             .agg(F.round(F.sum("total_amount"), 2).alias("total_revenue"))
             .orderBy(F.col("total_revenue").desc())
         )
