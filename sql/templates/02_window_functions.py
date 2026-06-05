@@ -33,11 +33,12 @@ if str(_sql_dir) not in sys.path:
 
 DATA_DIR = _sql_dir / "data"
 
-from utils import get_conn, check
+from utils import get_conn, check, register_sql_magic
 from utils.checks.window_functions import Checker
 
 conn = get_conn(DATA_DIR)
 checker = Checker(conn)
+register_sql_magic()
 print("Ready. Tables: users, merchants, accounts, transactions")\
 """,
         ),

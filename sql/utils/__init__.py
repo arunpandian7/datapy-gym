@@ -6,6 +6,30 @@ import pandas as pd
 from IPython.display import HTML, display
 
 
+def register_sql_magic() -> None:
+    """Register %%solution N cell magic: stores SQL in solution_N and previews results."""
+    from IPython import get_ipython
+    from IPython.core.magic import register_cell_magic
+
+    ip = get_ipython()
+    if ip is None:
+        return
+
+    @register_cell_magic
+    def solution(line, cell):
+        n = line.strip()
+        _conn = ip.user_ns.get("conn")
+        if _conn is None:
+            print("No 'conn' in namespace — run the setup cell first.")
+            return
+        sql = cell.strip()
+        ip.user_ns[f"solution_{n}"] = sql
+        try:
+            display(_conn.execute(sql).df())
+        except Exception as exc:
+            print(f"SQL error: {exc}")
+
+
 def get_conn(data_dir: Path) -> duckdb.DuckDBPyConnection:
     """Return an in-memory DuckDB connection with all four tables loaded as views."""
     conn = duckdb.connect()
