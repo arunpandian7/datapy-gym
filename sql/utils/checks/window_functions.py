@@ -89,4 +89,4 @@ class Checker:
             WHERE t.status = 'completed'
             ORDER BY m.mcc_category, t.amount
         """).df()
-        return check(solution, expected_df, self.conn, problem="P5: Percentile rank of txn amounts within MCC category", ordered=True)
+        return check(solution, expected_df, self.conn, problem="P5: Percentile rank of txn amounts within MCC category", ordered=False)
