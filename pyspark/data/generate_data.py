@@ -142,9 +142,12 @@ STATUS_POOL = (
     + ["refunded"] * 10
 )
 
+# Last 25 customers (476–500) intentionally have no orders, so anti-join problems return real results
+MAX_CUSTOMER_WITH_ORDERS = 475
+
 # Build shuffled customer_id assignment list
 customer_ids_assignment = [SKEW_CUSTOMER] * SKEW_COUNT + list(
-    np.random.choice(range(2, NUM_CUSTOMERS + 1), size=REST_COUNT, replace=True)
+    np.random.choice(range(2, MAX_CUSTOMER_WITH_ORDERS + 1), size=REST_COUNT, replace=True)
 )
 random.shuffle(customer_ids_assignment)
 

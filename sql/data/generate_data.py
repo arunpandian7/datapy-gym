@@ -77,11 +77,15 @@ merchants = pd.DataFrame({
 # ── accounts ──────────────────────────────────────────────────────────────────
 
 # ~20% of users get a second account
-N_ACCOUNTS = 600
+# Last 25 users (476–500) intentionally have no accounts, so anti-join problems return real results
+N_USERS_WITH_ACCOUNTS = 475
+users_with_accounts = user_ids[:N_USERS_WITH_ACCOUNTS]
+
+# ~20% of active users get a second account
+second_acct_users = RNG.choice(users_with_accounts, size=100, replace=False)
+acct_users = np.concatenate([users_with_accounts, second_acct_users])
+N_ACCOUNTS = len(acct_users)
 acct_ids   = np.arange(1, N_ACCOUNTS + 1)
-# first 500 are 1:1 with users; next 100 are a random subset
-second_acct_users = RNG.choice(user_ids, size=100, replace=False)
-acct_users = np.concatenate([user_ids, second_acct_users])
 acct_types = RNG.choice(["checking","savings","credit"],
                         size=N_ACCOUNTS, p=[0.50, 0.30, 0.20])
 acct_status = RNG.choice(["active","closed","suspended"],
