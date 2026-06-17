@@ -18,6 +18,9 @@ NOTEBOOKS = [
     "03_joins",
     "04_ctes",
     "05_time_series",
+    "06_advanced_window_patterns",
+    "07_set_ops_and_subqueries",
+    "08_pivot_and_data_quality",
 ]
 
 

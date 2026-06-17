@@ -18,6 +18,9 @@ NOTEBOOKS = [
     "03_joins",
     "04_partitioning",
     "05_salting",
+    "06_broadcast_and_aqe",
+    "07_complex_types_and_udfs",
+    "08_sessionization_and_scd",
 ]
 
 
